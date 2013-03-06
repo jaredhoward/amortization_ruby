@@ -25,7 +25,8 @@ class Class
 
           unless value.nil?
             if ext[:kind_of]
-              raise ArgumentError, "\#\{self.class.to_s\}##{attribute}= \#\{value.inspect\} is not the correct data type" unless value.kind_of?(ext[:kind_of])
+              kinds = *ext[:kind_of]
+              raise ArgumentError, "\#\{self.class.to_s\}##{attribute}= \#\{value.inspect\} is not the correct data type" unless kinds.map{|k| value.kind_of?(k) }.include?(true)
             end
             if ext[:validate]
               if ext[:validate].instance_of?(Proc)
