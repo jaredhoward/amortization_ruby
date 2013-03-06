@@ -1,4 +1,4 @@
-require_relative '../../lib/loan'
+require_relative '../lib/loan'
 
 describe Loan do
   [
