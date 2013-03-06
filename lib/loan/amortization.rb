@@ -5,6 +5,7 @@ class Loan
     attr_reader :loan
 
     def initialize(loan)
+      raise ArgumentError, "Amortization must be initialized with a Loan object" unless loan.instance_of?(Loan)
       @loan = loan
     end
 
