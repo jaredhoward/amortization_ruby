@@ -79,16 +79,16 @@ class Loan
       @amort_variables[:mi] = loan.mi if loan.has_mi?
 
       @amort_variables[:arm] = {
-        rounding_method: loan.arm_rounding_method,
-        index: loan._arm_index,
-        margin: loan._arm_margin,
-        interest_fixed: loan.arm_interest_fixed,
-        interest_adjusts: loan.arm_interest_adjusts,
-        no_caps: loan.arm_cap_no,
-        cap_first: (!loan.arm_cap_no ? loan._arm_cap_first : 0),
-        cap_annual: (!loan.arm_cap_no ? loan._arm_cap_annual : 0),
-        cap_ceiling: loan._arm_cap_ceiling,
-        cap_floor: loan._arm_cap_floor
+        rounding_method: loan.arm.rounding_method,
+        index: loan.arm._index,
+        margin: loan.arm._margin,
+        interest_fixed: loan.arm.interest_fixed,
+        interest_adjusts: loan.arm.interest_adjusts,
+        no_adjustable_cap: loan.arm.no_adjustable_cap,
+        cap_first: (!loan.arm.no_adjustable_cap ? loan.arm._cap_first : 0),
+        cap_annual: (!loan.arm.no_adjustable_cap ? loan.arm._cap_annual : 0),
+        cap_ceiling: loan.arm._cap_ceiling,
+        cap_floor: loan.arm._cap_floor
       } if loan.is_arm?
 
       if loan.is_heloc?

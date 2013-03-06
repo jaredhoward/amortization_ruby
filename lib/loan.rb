@@ -6,7 +6,7 @@ require_relative './loan/mortgage_insurance'
 
 class Loan
   attr_reader :purpose, :program
-  attr_accessor :mi
+  attr_accessor :mi, :arm
   extended_attr_accessor :amount, :interest_rate, :total_financed_amount, kind_of: Numeric, validate: ->v{v > 0}, reset: :amortization
   extended_attr_accessor :term, :payments_per_year, kind_of: Integer, validate: ->v{v > 0}, reset: :amortization
   extended_attr_accessor :total_prepaid_finance_amount, :closing_costs_paid_by_seller_amount, :additional_costs, kind_of: Numeric, validate: ->v{v >= 0}, reset: :amortization
@@ -84,7 +84,8 @@ class Loan
   end
 
   def is_arm?
-    [3,4].include?(program)
+    # [3,4].include?(program)
+    arm.instance_of?(Loan::AdjustableRateMortgage)
   end
 
   def is_heloc?
@@ -97,7 +98,7 @@ class Loan
   end
 
   def method_missing(method_name, *args, &block)
-    if method_name =~ /^_/ && (method_name =~ /rate/ || method_name =~ /arm_(index|margin|cap_first|cap_annual|cap_ceiling|cap_floor)$/)
+    if method_name =~ /^_/ && method_name =~ /rate/
       (send(method_name.to_s.sub(/^_/, '').to_sym, *args, &block) / 100.0).round(5)
     else
       super
