@@ -1,5 +1,3 @@
-require_relative '../extend/custom_float'
-
 class Loan
   class Amortization
     attr_reader :loan
@@ -78,18 +76,7 @@ class Loan
 
       @amort_variables[:mi] = loan.mi if loan.has_mi?
 
-      @amort_variables[:arm] = {
-        rounding_method: loan.arm.rounding_method,
-        index: loan.arm._index,
-        margin: loan.arm._margin,
-        interest_fixed: loan.arm.interest_fixed,
-        interest_adjusts: loan.arm.interest_adjusts,
-        no_adjustable_cap: loan.arm.no_adjustable_cap,
-        cap_first: (!loan.arm.no_adjustable_cap ? loan.arm._cap_first : 0),
-        cap_annual: (!loan.arm.no_adjustable_cap ? loan.arm._cap_annual : 0),
-        cap_ceiling: loan.arm._cap_ceiling,
-        cap_floor: loan.arm._cap_floor
-      } if loan.is_arm?
+      @amort_variables[:arm] = loan.arm if loan.is_arm?
 
       if loan.is_heloc?
         # @amort_variables[:heloc] = []
@@ -128,8 +115,8 @@ class Loan
 
     ###
     # Produce an amortization table with all the fixin's and return it all in a tidy array.
-    #   mi = array: premium, 11_29, reserves, property_value, cutoff_ltv, cutoff_month
-    #   arm = array: rounding_method, index, margin, interest_fixed, interest_adjusts, cap_ceiling, cap_first, cap_annual, cap_floor
+    #   mi = Loan::MortgageInsurance object
+    #   arm = Loan::AdjustableRateMortgage object
     #   construction = array: payments, rate
     ###
     def amortize(options)
@@ -208,10 +195,10 @@ class Loan
           payment_amount = amort_table[payment_number-1][:pi]
         else # non-APR
           if arm
-            oldrate = rate.dup
-            rate = calc_arm(arm, payment_number, rate)
-            rate_per_payment = rate / payments_per_year
-            if rate != oldrate # only recalculate payment amount when the rate changes
+            oldrate = rate
+            rate = arm.rate_for_month_number(payment_number, rate)
+            if rate != oldrate # only recalculate when the rate changes
+              rate_per_payment = rate / payments_per_year
               payment_amount = calc_each_payment(principle, rate, number_of_payments - payment_number + 1, payments_per_year).round(2)
             end
           end
@@ -283,63 +270,6 @@ class Loan
 
       return report
     end
-
-    ###
-    # Calculate adjustable interest rate.
-    ###
-    def calc_arm(arm, payment, rate)
-      if payment > arm[:interest_fixed]
-        fully_indexed_rate = round_type(arm[:rounding_method], (arm[:index] + arm[:margin]))
-        interest_cap = fully_indexed_rate < arm[:cap_ceiling] ? fully_indexed_rate : arm[:cap_ceiling]
-        if (payment - arm[:interest_fixed] - 1) % arm[:interest_adjusts] == 0
-          if arm[:no_caps] != false
-            this_cap = interest_cap
-          elsif payment == arm[:interest_fixed] + 1
-            this_cap = arm[:cap_first]
-          else
-            this_cap = arm[:cap_annual]
-          end
-          if interest_cap > rate
-            rate += this_cap
-            rate = interest_cap if rate > interest_cap
-          else
-            rate -= this_cap
-            rate = interest_cap if rate < interest_cap
-          end
-          rate = arm[:cap_floor] if rate < arm[:cap_floor]
-          rate = round_type(arm[:rounding_method], rate)
-        end
-      end
-      return rate
-    end
-
-    def round_type(type, num)
-      num = (num * 100.0).round(3)
-      case type
-      when 1
-        up = num.next_eighth
-        up_diff = (num - up).abs
-        down = num.last_eighth
-        down_diff = (num - down).abs
-        num = up_diff <= down_diff ? up : down
-      when 2
-        num = num.next_eighth
-      when 3
-        num = num.last_eighth
-      when 4
-        up = num.next_fourth
-        up_diff = (num - up).abs
-        down = num.last_fourth
-        down_diff = (num - down).abs
-        num = up_diff <= down_diff ? up : down
-      when 5
-        num = num.next_fourth
-      when 6
-        num = num.last_fourth
-      end
-      return (num / 100.0).round(5)
-    end
-
 
     private
 

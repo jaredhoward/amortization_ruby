@@ -5,8 +5,8 @@ require_relative './loan/calculator'
 require_relative './loan/mortgage_insurance'
 
 class Loan
-  attr_reader :purpose, :program
-  attr_accessor :mi, :arm
+  attr_reader :purpose, :program, :arm
+  attr_accessor :mi
   extended_attr_accessor :amount, :interest_rate, :total_financed_amount, kind_of: Numeric, validate: ->v{v > 0}, reset: :amortization
   extended_attr_accessor :term, :payments_per_year, kind_of: Integer, validate: ->v{v > 0}, reset: :amortization
   extended_attr_accessor :total_prepaid_finance_amount, :closing_costs_paid_by_seller_amount, :additional_costs, kind_of: Numeric, validate: ->v{v >= 0}, reset: :amortization
@@ -81,6 +81,17 @@ class Loan
 
     raise "Program value of '#{value}' is not allowed" unless (1..6).to_a.include?(value)
     @program = value
+  end
+
+  def arm=(adjustable_rate_mortgage)
+    @amortization = nil
+    @arm = if adjustable_rate_mortgage.instance_of?(Loan::AdjustableRateMortgage)
+      adjustable_rate_mortgage
+    elsif adjustable_rate_mortgage.instance_of?(Hash)
+      Loan::AdjustableRateMortgage.new(adjustable_rate_mortgage)
+    else
+      nil
+    end
   end
 
   def is_arm?
